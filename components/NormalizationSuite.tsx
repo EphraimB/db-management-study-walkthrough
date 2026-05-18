@@ -205,12 +205,12 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-slate-500/30">
                 <h3 className="scenario-title text-slate-400">0th Normal Form (UNF)</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                  <strong>Problem:</strong> Repeating groups and missing Primary Keys. The table represents multiple courses per student using blank rows (<code>NULL</code>). We cannot use standard SQL constraints or primary keys on this!
+                  <strong>Problem:</strong> Non-atomic values. The table has multiple courses stuffed into single cells as a comma-separated string. We cannot query this easily!
                 </p>
                 {renderFramerTable('UNF_StudentRecords')}
                 <div className="mt-4 flex justify-end">
                   <button onClick={advanceTo1NF} className="btn-action bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2">
-                    Decompose to 1NF (Fill Blanks) <ArrowRight size={16} />
+                    Decompose to 1NF <ArrowRight size={16} />
                   </button>
                 </div>
               </motion.div>
@@ -270,10 +270,10 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {renderFramerTable('Norm2_Students', { student_id: ['PK'] }, animStep === 1 ? ['major', 'department_head'] : [], 'pink')}
+                  {renderFramerTable('Norm2_Students', {}, animStep === 1 ? ['major', 'department_head'] : [], 'pink')}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFramerTable('Norm2_Courses', { course_id: ['PK'] })}
-                    {renderFramerTable('Norm2_Enrollments', { student_id: ['PK'], course_id: ['PK'] })}
+                    {renderFramerTable('Norm2_Courses')}
+                    {renderFramerTable('Norm2_Enrollments')}
                   </div>
                 </div>
 
