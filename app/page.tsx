@@ -2,66 +2,21 @@
 
 import { useState } from 'react';
 import { useDatabase } from '@/hooks/useDatabase';
-import { QueryExecResult } from 'sql.js';
+import AcidSuite from '@/components/AcidSuite';
+import RelationalAlgebraSuite from '@/components/RelationalAlgebraSuite';
+import { CheckCircle2, ChevronRight, CircleDot } from 'lucide-react';
 
-import AtomicityScenario from '@/components/AtomicityScenario';
-import ConsistencyScenario from '@/components/ConsistencyScenario';
-import IsolationScenario from '@/components/IsolationScenario';
-import DurabilityScenario from '@/components/DurabilityScenario';
-
-export type HistoryItem = {
-  id: number;
-  query: string;
-  results: QueryExecResult[] | null;
-  error: string | null;
-  affectedRows?: number;
-};
-
-type TabId = 'A' | 'C' | 'I' | 'D';
+type ModuleId = 'ACID' | 'RA' | 'SQL' | 'NORM';
 
 export default function Home() {
   const { isReady, executeQuery, executeSilentQuery, simulateCrash, SQLStatic, savedDiskState } = useDatabase();
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [activeTab, setActiveTab] = useState<TabId>('A');
+  const [activeModule, setActiveModule] = useState<ModuleId>('RA');
 
-  const runCommand = (query: string) => {
-    if (!isReady || !query.trim()) return;
-    const { results, error } = executeQuery(query);
-    
-    // SQLite doesn't return affected rows easily in sql.js without extra calls, 
-    // but we can fake it for the UI to look like MySQL for UPDATE/INSERT
-    let affectedRows = 0;
-    const upper = query.toUpperCase();
-    if (!error && (upper.includes('UPDATE') || upper.includes('INSERT') || upper.includes('DELETE'))) {
-      affectedRows = 1; // Simplified approximation for the UI effect
-    }
-
-    setHistory(prev => [...prev, {
-      id: Date.now(),
-      query,
-      results,
-      error,
-      affectedRows
-    }]);
-  };
-
-  const triggerCrash = () => {
-    const msg = simulateCrash();
-    if (msg) {
-      setHistory(prev => [...prev, {
-        id: Date.now(),
-        query: '-- SYSTEM EVENT --',
-        results: null,
-        error: msg
-      }]);
-    }
-  };
-
-  const tabs = [
-    { id: 'A', label: 'Atomicity (All-or-Nothing)' },
-    { id: 'C', label: 'Consistency (System Rules)' },
-    { id: 'I', label: 'Isolation (Concurrent Sessions)' },
-    { id: 'D', label: 'Durability (Crash Logs)' }
+  const modules = [
+    { id: 'ACID', label: 'ACID Engine', status: 'completed' },
+    { id: 'RA', label: 'Relational Algebra', status: 'active' },
+    { id: 'SQL', label: 'SQL Fluency', status: 'locked' },
+    { id: 'NORM', label: 'Normalization', status: 'locked' }
   ] as const;
 
   if (!isReady) {
@@ -69,62 +24,58 @@ export default function Home() {
   }
 
   return (
-    <main className="suite-container md:p-8 animate-fade-in">
-      <header className="mb-6">
-        <h1 className="suite-header">ACID Multi-Dimensional Engine Suite</h1>
-        <p className="suite-subtitle">Every database transaction is governed by four core pillars. Click any card below to test them.</p>
-      </header>
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans">
+      {/* Global Progress Bar Navigation */}
+      <nav className="bg-[#0b0f19] border-b border-slate-800 px-6 py-4 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
+          <div className="text-sm font-bold text-indigo-400 uppercase tracking-widest mr-4 shrink-0">
+            DBMS Final Prep
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm font-medium shrink-0">
+            {modules.map((mod, index) => (
+              <div key={mod.id} className="flex items-center gap-2">
+                <button 
+                  onClick={() => mod.status !== 'locked' && setActiveModule(mod.id)}
+                  disabled={mod.status === 'locked'}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
+                    mod.status === 'locked' ? 'opacity-50 cursor-not-allowed text-slate-500' :
+                    activeModule === mod.id ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.4)]' :
+                    mod.status === 'completed' ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60' :
+                    'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {mod.status === 'completed' && <CheckCircle2 size={16} />}
+                  {mod.status === 'active' && <CircleDot size={16} />}
+                  {mod.label}
+                </button>
+                {index < modules.length - 1 && (
+                  <ChevronRight size={16} className="text-slate-600" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </nav>
 
-      {/* Tabs */}
-      <div className="nav-tabs">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setHistory([]); // clear history on tab change
-            }}
-            className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content Area */}
-      <div className="mt-2 relative">
-        {activeTab === 'A' && (
-          <AtomicityScenario 
-            history={history} 
-            onRunCommand={runCommand} 
-            executeSilentQuery={executeSilentQuery} 
-          />
-        )}
-        {activeTab === 'C' && (
-          <ConsistencyScenario 
-            history={history} 
-            onRunCommand={runCommand} 
-            executeSilentQuery={executeSilentQuery} 
-          />
-        )}
-        {activeTab === 'I' && (
-          <IsolationScenario 
-            historyA={history} 
-            onRunCommandA={runCommand} 
+      {/* Main Content Area */}
+      <main className="max-w-6xl mx-auto p-6 md:p-8 mt-4">
+        {activeModule === 'ACID' && (
+          <AcidSuite 
+            executeQuery={executeQuery}
+            executeSilentQuery={executeSilentQuery}
+            simulateCrash={simulateCrash}
             SQLStatic={SQLStatic}
             savedDiskState={savedDiskState}
-            onCrash={triggerCrash}
           />
         )}
-        {activeTab === 'D' && (
-          <DurabilityScenario 
-            history={history} 
-            onRunCommand={runCommand} 
-            onCrash={triggerCrash}
+        {activeModule === 'RA' && (
+          <RelationalAlgebraSuite 
+            executeQuery={executeQuery}
             executeSilentQuery={executeSilentQuery}
           />
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -38,8 +38,29 @@ export function useDatabase() {
           FOREIGN KEY(to_account) REFERENCES BankAccounts(id)
         );
         
+        CREATE TABLE Departments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          dept_name TEXT NOT NULL
+        );
+        
+        CREATE TABLE Employees (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          emp_name TEXT NOT NULL,
+          department_id INTEGER,
+          salary DECIMAL(10,2) NOT NULL,
+          FOREIGN KEY(department_id) REFERENCES Departments(id)
+        );
+
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Bob', 500.00);
+        
+        INSERT INTO Departments (dept_name) VALUES ('Engineering'), ('HR'), ('Sales');
+        INSERT INTO Employees (emp_name, department_id, salary) VALUES 
+          ('Alice', 1, 90000.00),
+          ('Bob', 1, 85000.00),
+          ('Charlie', 2, 60000.00),
+          ('Diana', 3, 75000.00),
+          ('Eve', NULL, 50000.00);
       `);
       
       setDb(database);
