@@ -10,7 +10,7 @@ interface NormalizationSuiteProps {
 
 export default function NormalizationSuite({ executeQuery, executeSilentQuery }: NormalizationSuiteProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(0); 
   
   const [tables, setTables] = useState<Record<string, { cols: string[], rows: any[][] }>>({});
 
@@ -26,7 +26,8 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
   };
 
   useEffect(() => {
-    if (step === 1) refreshTables(['StudentRecords']);
+    if (step === 0) refreshTables(['UNF_StudentRecords']);
+    else if (step === 1) refreshTables(['Norm1_StudentRecords']);
     else if (step === 2) refreshTables(['Norm2_Students', 'Norm2_Courses', 'Norm2_Enrollments']);
     else if (step === 3) refreshTables(['Norm3_Students', 'Norm3_Majors', 'Norm2_Courses', 'Norm2_Enrollments']);
     else if (step === 4) refreshTables(['Norm3_Students', 'Norm3_Majors', 'NormBC_Instructors', 'NormBC_Enrollments']);
@@ -37,8 +38,13 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
     setHistory(prev => [...prev, { id: Date.now(), query, results, error }]);
   };
 
+  const advanceTo1NF = () => {
+    handleRun(`CREATE TABLE Norm1_StudentRecords (student_id INTEGER, student_name TEXT, major TEXT, advisor TEXT, course_id TEXT, course_name TEXT, instructor TEXT);\nINSERT INTO Norm1_StudentRecords VALUES \n(1, 'Alice', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing'),\n(1, 'Alice', 'Computer Science', 'Dr. Smith', 'MA101', 'Calculus I', 'Prof. Newton'),\n(2, 'Bob', 'Biology', 'Dr. Jones', 'BI101', 'Intro to Bio', 'Prof. Darwin'),\n(2, 'Bob', 'Biology', 'Dr. Jones', 'CS101', 'Intro to CS', 'Prof. Lovelace'),\n(3, 'Charlie', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing');`);
+    setStep(1);
+  };
+
   const advanceTo2NF = () => {
-    handleRun(`CREATE TABLE Norm2_Students AS SELECT DISTINCT student_id, student_name, major, advisor FROM StudentRecords;\nCREATE TABLE Norm2_Courses AS SELECT DISTINCT course_id, course_name FROM StudentRecords;\nCREATE TABLE Norm2_Enrollments AS SELECT DISTINCT student_id, course_id, instructor FROM StudentRecords;`);
+    handleRun(`CREATE TABLE Norm2_Students AS SELECT DISTINCT student_id, student_name, major, advisor FROM Norm1_StudentRecords;\nCREATE TABLE Norm2_Courses AS SELECT DISTINCT course_id, course_name FROM Norm1_StudentRecords;\nCREATE TABLE Norm2_Enrollments AS SELECT DISTINCT student_id, course_id, instructor FROM Norm1_StudentRecords;`);
     setStep(2);
   };
 
@@ -86,9 +92,10 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
       </header>
 
       {/* Progress Steps UI */}
-      <div className="flex items-center justify-between mb-8 px-4 relative max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-8 px-4 relative max-w-3xl mx-auto">
         <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-800 -z-10 -translate-y-1/2"></div>
         {[
+          { s: 0, label: 'UNF' },
           { s: 1, label: '1NF' },
           { s: 2, label: '2NF' },
           { s: 3, label: '3NF' },
@@ -107,6 +114,24 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
       <div className="panel-container lg:grid-cols-[1fr_400px]">
         {/* Left Side: Visual Data */}
         <div className="flex flex-col gap-4">
+
+          {/* STEP 0: 0NF */}
+          {step === 0 && (
+            <div className="scenario-card animate-fade-in border-slate-500/30">
+              <h3 className="scenario-title text-slate-400">0th Normal Form (UNF)</h3>
+              <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+                <strong>Problem:</strong> The data contains repeating groups and non-atomic values (arrays/comma-separated strings). <br/>
+                Our <code className="text-slate-400">UNF_StudentRecords</code> table has multiple courses and instructors stuffed into single cells. This makes querying extremely difficult!
+              </p>
+              {renderTable('UNF_StudentRecords')}
+              
+              <div className="mt-4 flex justify-end">
+                <button onClick={advanceTo1NF} className="btn-action bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2">
+                  Decompose to 1NF (Atomic) <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* STEP 1: 1NF */}
           {step === 1 && (
@@ -114,12 +139,12 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               <h3 className="scenario-title text-indigo-400">1st Normal Form (1NF)</h3>
               <p className="text-sm text-slate-300 mb-4 leading-relaxed">
                 <strong>Rule:</strong> Data must be atomic (no arrays/lists in a cell). <br/>
-                Our <code className="text-indigo-400">StudentRecords</code> table already meets 1NF. However, it's a "Universal Relation" that suffers from severe insert, update, and delete anomalies. The Primary Key is the combination of <code>(student_id, course_id)</code>.
+                By executing inserts that break apart the comma-separated strings, we achieved 1NF. However, it suffers from severe insert, update, and delete anomalies. The Primary Key is the combination of <code>(student_id, course_id)</code>.
               </p>
-              {renderTable('StudentRecords')}
+              {renderTable('Norm1_StudentRecords')}
               
               <div className="mt-4 flex justify-end">
-                <button onClick={advanceTo2NF} className="btn-action bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2">
+                <button onClick={advanceTo2NF} className="btn-action bg-purple-600 hover:bg-purple-500 flex items-center gap-2">
                   Decompose to 2NF <ArrowRight size={16} />
                 </button>
               </div>

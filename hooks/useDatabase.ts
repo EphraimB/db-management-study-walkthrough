@@ -60,15 +60,14 @@ export function useDatabase() {
           FOREIGN KEY(employee_id) REFERENCES Employees(id)
         );
         
-        -- Universal Relation for Normalization (Violates 2NF, 3NF, BCNF)
-        CREATE TABLE StudentRecords (
+        -- Universal Relation for Normalization (Violates 1NF, 2NF, 3NF, BCNF)
+        CREATE TABLE UNF_StudentRecords (
           student_id INTEGER,
           student_name TEXT,
           major TEXT,
           advisor TEXT,
-          course_id TEXT,
-          course_name TEXT,
-          instructor TEXT
+          courses TEXT,
+          instructors TEXT
         );
 
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
@@ -90,12 +89,10 @@ export function useDatabase() {
           (3, 1200.00, '2023-10-15', 'East'),
           (4, 300.00, '2023-10-20', 'West');
           
-        INSERT INTO StudentRecords VALUES 
-          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing'),
-          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'MA101', 'Calculus I', 'Prof. Newton'),
-          (2, 'Bob', 'Biology', 'Dr. Jones', 'BI101', 'Intro to Bio', 'Prof. Darwin'),
-          (2, 'Bob', 'Biology', 'Dr. Jones', 'CS101', 'Intro to CS', 'Prof. Lovelace'),
-          (3, 'Charlie', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing');
+        INSERT INTO UNF_StudentRecords VALUES 
+          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'CS101 (Intro to CS), MA101 (Calculus I)', 'Prof. Turing, Prof. Newton'),
+          (2, 'Bob', 'Biology', 'Dr. Jones', 'BI101 (Intro to Bio), CS101 (Intro to CS)', 'Prof. Darwin, Prof. Lovelace'),
+          (3, 'Charlie', 'Computer Science', 'Dr. Smith', 'CS101 (Intro to CS)', 'Prof. Turing');
       `);
       
       setDb(database);
