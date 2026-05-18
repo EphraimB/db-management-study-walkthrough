@@ -18,7 +18,7 @@ export default function SqlFluencySuite({ executeQuery, executeSilentQuery }: Sq
   const tabs = [
     { id: 'AGG', label: 'Aggregation & Grouping' },
     { id: 'ADV', label: 'Advanced Selection & Subqueries' },
-    { id: 'FEAT', label: 'CTEs & Views' }
+    { id: 'FEAT', label: 'Stored Procedures' }
   ] as const;
 
   return (

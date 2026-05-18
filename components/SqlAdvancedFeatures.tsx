@@ -15,17 +15,17 @@ export default function SqlAdvancedFeatures({ executeQuery, executeSilentQuery }
     setHistory(prev => [...prev, { id: Date.now(), query, results, error }]);
   };
 
-  const runCTE = () => handleRun("WITH DeptTotals AS (\n  SELECT department_id, SUM(salary) as total_sal\n  FROM Employees\n  GROUP BY department_id\n)\nSELECT d.dept_name, dt.total_sal\nFROM Departments d\nJOIN DeptTotals dt ON d.id = dt.department_id;");
-  const runCreateView = () => handleRun("CREATE VIEW HighEarners AS\nSELECT emp_name, salary \nFROM Employees \nWHERE salary > 70000;");
-  const runSelectView = () => handleRun("SELECT * FROM HighEarners;");
+  const runCreateProc = () => handleRun("DELIMITER //\nCREATE PROCEDURE GetEarnersAbove(IN min_salary DECIMAL)\nBEGIN\n  SELECT emp_name, salary FROM Employees WHERE salary > min_salary;\nEND //\nDELIMITER ;");
+  const runCallProc = () => handleRun("CALL GetEarnersAbove(80000);");
+  const runCaseStatement = () => handleRun("SELECT emp_name, salary,\nCASE\n  WHEN salary > 80000 THEN 'High Earner'\n  WHEN salary > 60000 THEN 'Mid Earner'\n  ELSE 'Entry Level'\nEND as compensation_tier\nFROM Employees;");
 
   return (
     <div className="animate-fade-in">
       <div className="scenario-card">
-        <h3 className="scenario-title">CTEs & VIEWS</h3>
+        <h3 className="scenario-title">STORED PROCEDURES & CASE STATEMENTS</h3>
         <p className="scenario-desc">
-          <strong>CTEs (Common Table Expressions):</strong> Temporary result sets defined using the <code>WITH</code> clause. Excellent for breaking down complex queries.<br/>
-          <strong>Views:</strong> Saved, permanent queries that act like virtual tables in the database. Good for security and reusability.
+          <strong>Stored Procedures:</strong> Saved SQL scripts that accept input parameters (<code>IN</code>/<code>OUT</code>) and execute complex logic. <br/>
+          <strong>Case Statements:</strong> SQL's version of <code>IF/ELSE</code> logic, used to return dynamically categorized data within a query.
         </p>
       </div>
 
@@ -33,24 +33,23 @@ export default function SqlAdvancedFeatures({ executeQuery, executeSilentQuery }
         <div className="live-state-panel">
           <div className="live-state-header text-cyan-400">Advanced Structures</div>
           
-          <div className="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">
-            <p className="mb-3"><strong>CTE:</strong> We will first create a temporary block calculating total salaries per department, and then immediately query against that block in a single statement.</p>
-            <p className="mb-3"><strong>View Creation:</strong> We will create a permanent virtual table called <code>HighEarners</code>. Notice it returns 0 rows initially, but succeeds.</p>
-            <p><strong>Query View:</strong> Once the view is created, we can query it exactly as if it were a physical table.</p>
+          <div className="text-sm text-slate-400 mb-6 flex-grow leading-relaxed max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+            <p className="mb-3"><strong>Stored Procedures:</strong> Creates a reusable block of code with a dynamic <code>min_salary</code> parameter, and executes it via the <code>CALL</code> command.</p>
+            <p><strong>Case Statements:</strong> Evaluates conditions sequentially. Once a condition is true, it stops reading and returns the result. If no conditions are true, it returns the value in the <code>ELSE</code> clause.</p>
           </div>
 
           <div className="mt-auto flex flex-col gap-3">
-            <button onClick={runCTE} className="btn-action bg-cyan-600 hover:bg-cyan-500 flex justify-between items-center">
-              <span>1. Execute CTE</span>
-              <code className="bg-black/30 px-2 py-1 rounded text-xs font-mono">WITH cte_name AS (...)</code>
+            <button onClick={runCreateProc} className="btn-action bg-blue-600 hover:bg-blue-500 flex justify-between items-center py-2">
+              <span>1. Create Procedure</span>
+              <code className="bg-black/30 px-2 py-1 rounded text-[10px] font-mono">DELIMITER //</code>
             </button>
-            <button onClick={runCreateView} className="btn-action bg-teal-600 hover:bg-teal-500 flex justify-between items-center">
-              <span>2. Create View</span>
-              <code className="bg-black/30 px-2 py-1 rounded text-xs font-mono">CREATE VIEW</code>
+            <button onClick={runCallProc} className="btn-action bg-indigo-600 hover:bg-indigo-500 flex justify-between items-center py-2">
+              <span>2. Call Procedure</span>
+              <code className="bg-black/30 px-2 py-1 rounded text-[10px] font-mono">CALL GetEarnersAbove(80k)</code>
             </button>
-            <button onClick={runSelectView} className="btn-action bg-emerald-600 hover:bg-emerald-500 flex justify-between items-center">
-              <span>3. Query the View</span>
-              <code className="bg-black/30 px-2 py-1 rounded text-xs font-mono">SELECT * FROM View</code>
+            <button onClick={runCaseStatement} className="btn-action bg-emerald-600 hover:bg-emerald-500 flex justify-between items-center py-2">
+              <span>3. CASE Statement</span>
+              <code className="bg-black/30 px-2 py-1 rounded text-[10px] font-mono">CASE WHEN ... THEN</code>
             </button>
           </div>
         </div>

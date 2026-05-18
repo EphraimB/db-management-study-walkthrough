@@ -101,6 +101,52 @@ export function useDatabase() {
       // Simulate MySQL by allowing AUTO_INCREMENT keyword
       let simulatedQuery = query.replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT');
       simulatedQuery = simulatedQuery.replace(/START TRANSACTION/gi, 'BEGIN TRANSACTION');
+      
+      // --- STORED PROCEDURE MOCK ENGINE ---
+      simulatedQuery = simulatedQuery.replace(/DELIMITER\s+\S+/gi, '').trim();
+
+      const createProcMatch = simulatedQuery.match(/CREATE\s+PROCEDURE\s+(\w+)\s*\((.*?)\)\s*BEGIN\s+(.*?)\s+END/is);
+      if (createProcMatch) {
+        const procName = createProcMatch[1];
+        const paramsRaw = createProcMatch[2];
+        const body = createProcMatch[3];
+        
+        const paramNames = paramsRaw.split(',').map(p => {
+          const parts = p.trim().split(/\s+/);
+          if (parts[0].toUpperCase() === 'IN' || parts[0].toUpperCase() === 'OUT' || parts[0].toUpperCase() === 'INOUT') {
+            return parts.length > 1 ? parts[1] : '';
+          }
+          return parts[0];
+        }).filter(Boolean);
+
+        (SQLRef.current as any).__mockProcedures = (SQLRef.current as any).__mockProcedures || {};
+        (SQLRef.current as any).__mockProcedures[procName.toUpperCase()] = { paramNames, body };
+        
+        return { results: [], error: null };
+      }
+
+      const callProcMatch = simulatedQuery.match(/CALL\s+(\w+)\s*\((.*?)\)/is);
+      if (callProcMatch) {
+        const procName = callProcMatch[1].toUpperCase();
+        const argsRaw = callProcMatch[2];
+        const args = argsRaw.split(',').map(a => a.trim());
+        
+        const procedures = (SQLRef.current as any).__mockProcedures || {};
+        const proc = procedures[procName];
+        if (!proc) {
+          return { results: [], error: `Procedure ${callProcMatch[1]} does not exist` };
+        }
+        
+        let procQuery = proc.body;
+        proc.paramNames.forEach((pName: string, i: number) => {
+          const regex = new RegExp(`\\b${pName}\\b`, 'gi');
+          procQuery = procQuery.replace(regex, args[i]);
+        });
+        
+        simulatedQuery = procQuery;
+      }
+      // --- END STORED PROCEDURE MOCK ENGINE ---
+
       const res = db.exec(simulatedQuery);
       
       // Simple heuristic to track transaction state
