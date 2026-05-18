@@ -19,8 +19,8 @@ export default function Home() {
     { id: 'ACID', label: 'ACID Engine', status: 'completed' },
     { id: 'RA', label: 'Relational Algebra', status: 'completed' },
     { id: 'SQL', label: 'SQL Fluency', status: 'completed' },
-    { id: 'ERD', label: 'ER Diagrams', status: 'active' },
-    { id: 'NORM', label: 'Normalization', status: 'completed' }
+    { id: 'NORM', label: 'Normalization', status: 'completed' },
+    { id: 'ERD', label: 'ER Diagrams', status: 'active' }
   ];
 
   if (!isReady) {
