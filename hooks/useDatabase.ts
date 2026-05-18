@@ -59,6 +59,17 @@ export function useDatabase() {
           region TEXT NOT NULL,
           FOREIGN KEY(employee_id) REFERENCES Employees(id)
         );
+        
+        -- Universal Relation for Normalization (Violates 2NF, 3NF, BCNF)
+        CREATE TABLE StudentRecords (
+          student_id INTEGER,
+          student_name TEXT,
+          major TEXT,
+          advisor TEXT,
+          course_id TEXT,
+          course_name TEXT,
+          instructor TEXT
+        );
 
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Bob', 500.00);
@@ -78,6 +89,13 @@ export function useDatabase() {
           (3, 5000.00, '2023-10-10', 'East'),
           (3, 1200.00, '2023-10-15', 'East'),
           (4, 300.00, '2023-10-20', 'West');
+          
+        INSERT INTO StudentRecords VALUES 
+          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing'),
+          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'MA101', 'Calculus I', 'Prof. Newton'),
+          (2, 'Bob', 'Biology', 'Dr. Jones', 'BI101', 'Intro to Bio', 'Prof. Darwin'),
+          (2, 'Bob', 'Biology', 'Dr. Jones', 'CS101', 'Intro to CS', 'Prof. Lovelace'),
+          (3, 'Charlie', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro to CS', 'Prof. Turing');
       `);
       
       setDb(database);
@@ -105,7 +123,7 @@ export function useDatabase() {
       // --- STORED PROCEDURE MOCK ENGINE ---
       simulatedQuery = simulatedQuery.replace(/DELIMITER\s+\S+/gi, '').trim();
 
-      const createProcMatch = simulatedQuery.match(/CREATE\s+PROCEDURE\s+(\w+)\s*\((.*?)\)\s*BEGIN\s+(.*?)\s+END/is);
+      const createProcMatch = simulatedQuery.match(/CREATE\s+PROCEDURE\s+(\w+)\s*\(([\s\S]*?)\)\s*BEGIN\s+([\s\S]*?)\s+END/i);
       if (createProcMatch) {
         const procName = createProcMatch[1];
         const paramsRaw = createProcMatch[2];
@@ -125,7 +143,7 @@ export function useDatabase() {
         return { results: [], error: null };
       }
 
-      const callProcMatch = simulatedQuery.match(/CALL\s+(\w+)\s*\((.*?)\)/is);
+      const callProcMatch = simulatedQuery.match(/CALL\s+(\w+)\s*\(([\s\S]*?)\)/i);
       if (callProcMatch) {
         const procName = callProcMatch[1].toUpperCase();
         const argsRaw = callProcMatch[2];

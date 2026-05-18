@@ -5,20 +5,21 @@ import { useDatabase } from '@/hooks/useDatabase';
 import AcidSuite from '@/components/AcidSuite';
 import RelationalAlgebraSuite from '@/components/RelationalAlgebraSuite';
 import SqlFluencySuite from '@/components/SqlFluencySuite';
+import NormalizationSuite from '@/components/NormalizationSuite';
 import { CheckCircle2, ChevronRight, CircleDot } from 'lucide-react';
 
 type ModuleId = 'ACID' | 'RA' | 'SQL' | 'NORM';
 
 export default function Home() {
   const { isReady, executeQuery, executeSilentQuery, simulateCrash, SQLStatic, savedDiskState } = useDatabase();
-  const [activeModule, setActiveModule] = useState<ModuleId>('SQL');
+  const [activeModule, setActiveModule] = useState<ModuleId>('NORM');
 
-  const modules = [
+  const modules: { id: ModuleId; label: string; status: 'completed' | 'active' | 'locked' }[] = [
     { id: 'ACID', label: 'ACID Engine', status: 'completed' },
     { id: 'RA', label: 'Relational Algebra', status: 'completed' },
-    { id: 'SQL', label: 'SQL Fluency', status: 'active' },
-    { id: 'NORM', label: 'Normalization', status: 'locked' }
-  ] as const;
+    { id: 'SQL', label: 'SQL Fluency', status: 'completed' },
+    { id: 'NORM', label: 'Normalization', status: 'active' }
+  ];
 
   if (!isReady) {
     return <div className="min-h-screen flex items-center justify-center text-indigo-400">Booting Database Engine...</div>;
@@ -78,6 +79,12 @@ export default function Home() {
         )}
         {activeModule === 'SQL' && (
           <SqlFluencySuite 
+            executeQuery={executeQuery}
+            executeSilentQuery={executeSilentQuery}
+          />
+        )}
+        {activeModule === 'NORM' && (
+          <NormalizationSuite 
             executeQuery={executeQuery}
             executeSilentQuery={executeSilentQuery}
           />
