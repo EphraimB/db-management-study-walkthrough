@@ -8,22 +8,50 @@ import SqlFluencySuite from '@/components/SqlFluencySuite';
 import NormalizationSuite from '@/components/NormalizationSuite';
 import ErdSuite from '@/components/ErdSuite';
 import IndexingSuite from '@/components/IndexingSuite';
-import { CheckCircle2, ChevronRight, CircleDot } from 'lucide-react';
+import { CheckCircle2, ChevronRight, CircleDot, RotateCcw } from 'lucide-react';
 
-type ModuleId = 'ERD' | 'NORM' | 'ACID' | 'RA' | 'SQL' | 'IDX';
+type ModuleId = 'ACID' | 'RA' | 'SQL' | 'NORM' | 'ERD' | 'IDX';
+
+const ALL_MODULES: { id: ModuleId; label: string }[] = [
+  { id: 'ACID', label: 'ACID Engine' },
+  { id: 'RA', label: 'Relational Algebra' },
+  { id: 'SQL', label: 'SQL Fluency' },
+  { id: 'NORM', label: 'Normalization' },
+  { id: 'ERD', label: 'ER Diagrams' },
+  { id: 'IDX', label: 'Indexing Patterns' }
+];
 
 export default function Home() {
   const { isReady, executeQuery, executeSilentQuery, simulateCrash, SQLStatic, savedDiskState } = useDatabase();
   const [activeModule, setActiveModule] = useState<ModuleId>('IDX');
+  const [completedModules, setCompletedModules] = useState<ModuleId[]>(['ACID', 'RA', 'SQL', 'NORM', 'ERD']);
 
-  const modules: { id: ModuleId; label: string; status: 'completed' | 'active' | 'locked' }[] = [
-    { id: 'ACID', label: 'ACID Engine', status: 'completed' },
-    { id: 'RA', label: 'Relational Algebra', status: 'completed' },
-    { id: 'SQL', label: 'SQL Fluency', status: 'completed' },
-    { id: 'NORM', label: 'Normalization', status: 'completed' },
-    { id: 'ERD', label: 'ER Diagrams', status: 'completed' },
-    { id: 'IDX', label: 'Indexing Patterns', status: 'active' }
-  ];
+  const resetProgress = () => {
+    setCompletedModules([]);
+    setActiveModule('ACID');
+  };
+
+  const handleNext = () => {
+    if (!completedModules.includes(activeModule)) {
+      setCompletedModules([...completedModules, activeModule]);
+    }
+    const currentIndex = ALL_MODULES.findIndex(m => m.id === activeModule);
+    if (currentIndex < ALL_MODULES.length - 1) {
+      setActiveModule(ALL_MODULES[currentIndex + 1].id);
+    }
+  };
+
+  const modules = ALL_MODULES.map((mod, index) => {
+    const isCompleted = completedModules.includes(mod.id);
+    const isActive = activeModule === mod.id;
+    // Unlocked if it's the first module, or the previous module is completed
+    const isUnlocked = index === 0 || completedModules.includes(ALL_MODULES[index - 1].id) || isCompleted;
+    
+    return {
+      ...mod,
+      status: isCompleted ? 'completed' : isActive ? 'active' : isUnlocked ? 'active' : 'locked' // treating unlocked as active to click
+    };
+  });
 
   if (!isReady) {
     return <div className="min-h-screen flex items-center justify-center text-indigo-400">Booting Database Engine...</div>;
@@ -43,9 +71,17 @@ export default function Home() {
               <span className="bg-indigo-600 text-white px-2 py-1 rounded">DBMS</span>
               Final Prep
             </div>
-            <div className="flex items-center gap-3 bg-slate-900 border border-slate-700 px-4 py-2 rounded-full shadow-inner">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</div>
-              <div className="text-emerald-400 font-bold text-lg">{progressPercentage}%</div>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={resetProgress}
+                className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-rose-400 transition-colors uppercase tracking-widest px-3 py-2 rounded border border-slate-700 hover:border-rose-500/50 hover:bg-rose-950/30"
+              >
+                <RotateCcw size={14} /> Reset
+              </button>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-700 px-4 py-2 rounded-full shadow-inner">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</div>
+                <div className="text-emerald-400 font-bold text-lg">{progressPercentage}%</div>
+              </div>
             </div>
           </div>
           
@@ -135,6 +171,16 @@ export default function Home() {
             executeSilentQuery={executeSilentQuery}
           />
         )}
+
+        {/* Global Progression Control */}
+        <div className="mt-12 flex justify-center border-t border-slate-800 pt-8">
+          <button 
+            onClick={handleNext}
+            className="btn-action bg-indigo-600 hover:bg-indigo-500 flex items-center gap-2 px-8 py-4 text-lg font-bold shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+          >
+            Mark Module Complete & Continue <ChevronRight size={20} />
+          </button>
+        </div>
       </main>
     </div>
   );
