@@ -6,19 +6,21 @@ import AcidSuite from '@/components/AcidSuite';
 import RelationalAlgebraSuite from '@/components/RelationalAlgebraSuite';
 import SqlFluencySuite from '@/components/SqlFluencySuite';
 import NormalizationSuite from '@/components/NormalizationSuite';
+import ErdSuite from '@/components/ErdSuite';
 import { CheckCircle2, ChevronRight, CircleDot } from 'lucide-react';
 
-type ModuleId = 'ACID' | 'RA' | 'SQL' | 'NORM';
+type ModuleId = 'ERD' | 'NORM' | 'ACID' | 'RA' | 'SQL';
 
 export default function Home() {
   const { isReady, executeQuery, executeSilentQuery, simulateCrash, SQLStatic, savedDiskState } = useDatabase();
-  const [activeModule, setActiveModule] = useState<ModuleId>('NORM');
+  const [activeModule, setActiveModule] = useState<ModuleId>('ERD');
 
   const modules: { id: ModuleId; label: string; status: 'completed' | 'active' | 'locked' }[] = [
     { id: 'ACID', label: 'ACID Engine', status: 'completed' },
     { id: 'RA', label: 'Relational Algebra', status: 'completed' },
     { id: 'SQL', label: 'SQL Fluency', status: 'completed' },
-    { id: 'NORM', label: 'Normalization', status: 'active' }
+    { id: 'ERD', label: 'ER Diagrams', status: 'active' },
+    { id: 'NORM', label: 'Normalization', status: 'completed' }
   ];
 
   if (!isReady) {
@@ -79,6 +81,12 @@ export default function Home() {
         )}
         {activeModule === 'SQL' && (
           <SqlFluencySuite 
+            executeQuery={executeQuery}
+            executeSilentQuery={executeSilentQuery}
+          />
+        )}
+        {activeModule === 'ERD' && (
+          <ErdSuite 
             executeQuery={executeQuery}
             executeSilentQuery={executeSilentQuery}
           />
