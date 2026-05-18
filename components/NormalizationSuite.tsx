@@ -117,7 +117,7 @@ CREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM N
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
         transition={{ duration: 0.4 }}
-        className="mb-4 bg-[#0b0f19] border border-slate-700 rounded-lg overflow-hidden custom-scrollbar max-w-full shadow-lg relative"
+        className="mb-4 bg-[#0b0f19] border border-slate-700 rounded-lg overflow-x-auto custom-scrollbar max-w-full shadow-lg relative"
       >
         <div className="bg-slate-800 px-3 py-2 border-b border-slate-700 flex items-center justify-between z-20 relative">
           <span className="text-indigo-300 text-xs font-bold uppercase tracking-wider">{name}</span>
@@ -263,10 +263,10 @@ CREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM N
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {renderFramerTable('Norm1_Students', { student_id: ['PK'] })}
+                  {renderFramerTable('Norm1_Students', {})}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFramerTable('Norm1_StudentMajors', { student_id: ['PK'], major: ['PK'] }, animStep === 1 ? ['major', 'department_head'] : [], 'purple')}
-                    {renderFramerTable('Norm1_StudentCourses', { student_id: ['PK'], course_id: ['PK'] }, animStep === 1 ? ['course_id', 'course_name'] : [], 'purple')}
+                    {renderFramerTable('Norm1_StudentMajors', {}, animStep === 1 ? ['major', 'department_head'] : [], 'purple')}
+                    {renderFramerTable('Norm1_StudentCourses', {}, animStep === 1 ? ['course_id', 'course_name'] : [], 'purple')}
                   </div>
                 </div>
                 
@@ -303,14 +303,14 @@ CREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM N
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {renderFramerTable('Norm2_Students', { student_id: ['PK'] }, animStep === 1 ? ['advisor_id', 'advisor_name'] : [], 'cyan')}
+                  {renderFramerTable('Norm2_Students', {}, animStep === 1 ? ['advisor_id', 'advisor_name'] : [], 'cyan')}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
-                    {renderFramerTable('Norm2_StudentMajors', { student_id: ['PK', 'FK'], major: ['PK', 'FK'] })}
-                    {renderFramerTable('Norm2_Enrollments', { student_id: ['PK', 'FK'], course_id: ['PK', 'FK'] })}
+                    {renderFramerTable('Norm2_StudentMajors', {})}
+                    {renderFramerTable('Norm2_Enrollments', {})}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
-                    {renderFramerTable('Norm2_Majors', { major: ['PK'] })}
-                    {renderFramerTable('Norm2_Courses', { course_id: ['PK'] })}
+                    {renderFramerTable('Norm2_Majors', {})}
+                    {renderFramerTable('Norm2_Courses', {})}
                   </div>
                 </div>
 
