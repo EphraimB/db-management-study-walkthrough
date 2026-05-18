@@ -50,6 +50,15 @@ export function useDatabase() {
           salary DECIMAL(10,2) NOT NULL,
           FOREIGN KEY(department_id) REFERENCES Departments(id)
         );
+        
+        CREATE TABLE Sales (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_id INTEGER NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          sale_date DATE NOT NULL,
+          region TEXT NOT NULL,
+          FOREIGN KEY(employee_id) REFERENCES Employees(id)
+        );
 
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Bob', 500.00);
@@ -61,6 +70,14 @@ export function useDatabase() {
           ('Charlie', 2, 60000.00),
           ('Diana', 3, 75000.00),
           ('Eve', NULL, 50000.00);
+          
+        INSERT INTO Sales (employee_id, amount, sale_date, region) VALUES 
+          (1, 1500.00, '2023-10-01', 'North'),
+          (1, 2000.00, '2023-10-05', 'North'),
+          (2, 800.00, '2023-10-02', 'South'),
+          (3, 5000.00, '2023-10-10', 'East'),
+          (3, 1200.00, '2023-10-15', 'East'),
+          (4, 300.00, '2023-10-20', 'West');
       `);
       
       setDb(database);
