@@ -64,10 +64,10 @@ export function useDatabase() {
         CREATE TABLE UNF_StudentRecords (
           student_id INTEGER,
           student_name TEXT,
+          student_email TEXT,
           major TEXT,
-          advisor TEXT,
-          courses TEXT,
-          instructors TEXT
+          department_head TEXT,
+          course_data TEXT
         );
 
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
@@ -90,9 +90,9 @@ export function useDatabase() {
           (4, 300.00, '2023-10-20', 'West');
           
         INSERT INTO UNF_StudentRecords VALUES 
-          (1, 'Alice', 'Computer Science', 'Dr. Smith', 'CS101 (Intro to CS), MA101 (Calculus I)', 'Prof. Turing, Prof. Newton'),
-          (2, 'Bob', 'Biology', 'Dr. Jones', 'BI101 (Intro to Bio), CS101 (Intro to CS)', 'Prof. Darwin, Prof. Lovelace'),
-          (3, 'Charlie', 'Computer Science', 'Dr. Smith', 'CS101 (Intro to CS)', 'Prof. Turing');
+          (1, 'Alice', 'alice@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101:Intro(4)-Turing[R101], MA101:Calc(4)-Newton[R102]'),
+          (2, 'Bob', 'bob@uni.edu', 'Biology', 'Dr. Jones', 'BI101:Intro(4)-Darwin[R201], CS101:Intro(4)-Lovelace[R101]'),
+          (3, 'Charlie', 'charlie@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101:Intro(4)-Turing[R101]');
       `);
       
       setDb(database);
