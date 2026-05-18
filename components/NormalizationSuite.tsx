@@ -463,6 +463,23 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                       </div>
                     )}
 
+                    {indexStatus === 'unoptimized_run' && (
+                      <div className="bg-indigo-950/40 border border-indigo-500/40 p-4 rounded mb-6 text-sm">
+                        <div className="text-indigo-400 font-bold mb-2 font-sans tracking-wide">HOW TO CHOOSE INDEXES?</div>
+                        <p className="text-slate-300 mb-2 leading-relaxed">
+                          To optimize, look at the <strong className="text-rose-400">JOIN</strong> conditions and <strong className="text-rose-400">WHERE</strong> clauses in your query:
+                        </p>
+                        <ul className="list-disc pl-5 text-slate-400 space-y-2 mb-3">
+                          <li>Primary Keys (like <code className="text-slate-300">Students.student_id</code>) are automatically indexed by the database.</li>
+                          <li>However, <strong>Foreign Keys are NOT automatically indexed!</strong></li>
+                          <li>When we execute <code className="text-indigo-300">JOIN NormBC_Enrollments e ON s.student_id = e.student_id</code>, the database must do a full table scan of 50,000 rows in Enrollments for every student to find a match!</li>
+                        </ul>
+                        <p className="text-slate-300 font-bold">
+                          Solution: We must create indexes on our Foreign Keys: <code className="text-emerald-400">Enrollments(student_id)</code> and <code className="text-emerald-400">Enrollments(instructor)</code>.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex justify-center gap-4 font-sans">
                       {indexStatus === 'ready' && (
                         <button onClick={runUnoptimized} className="btn-action bg-rose-600 hover:bg-rose-500">
@@ -471,8 +488,8 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                       )}
                       
                       {indexStatus === 'unoptimized_run' && (
-                        <button onClick={applyIndexes} className="btn-action bg-indigo-600 hover:bg-indigo-500">
-                          CREATE INDEX ON (student_id)
+                        <button onClick={applyIndexes} className="btn-action bg-indigo-600 hover:bg-indigo-500 animate-pulse-glow">
+                          CREATE INDEX ON Foreign Keys
                         </button>
                       )}
 
