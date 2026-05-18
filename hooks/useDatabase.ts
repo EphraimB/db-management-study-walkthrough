@@ -20,7 +20,7 @@ export function useDatabase() {
       const database = new SQL.Database();
       
       // Strict constraints needed for ACID simulation
-      database.run(`PRAGMA foreign_keys = ON;`);
+      database.exec(`PRAGMA foreign_keys = ON;`);
       
       database.run(`
         CREATE TABLE BankAccounts (
@@ -44,6 +44,7 @@ export function useDatabase() {
       
       setDb(database);
       setSavedDiskState(database.export()); // Initial save to "disk"
+      database.exec(`PRAGMA foreign_keys = ON;`); // export() wipes connection pragmas
       setIsReady(true);
     } catch (err: any) {
       setError(err.message);
@@ -76,6 +77,7 @@ export function useDatabase() {
       // Durability mechanism: only export to "disk" if auto-commit is active (not in transaction)
       if (!currentTransState) {
         setSavedDiskState(db.export());
+        db.exec("PRAGMA foreign_keys = ON;"); // export() wipes connection pragmas
       }
       
       return { results: res, error: null };
@@ -91,6 +93,7 @@ export function useDatabase() {
     
     // Restore from "disk"
     const newDb = new SQLRef.current.Database(savedDiskState);
+    newDb.exec("PRAGMA foreign_keys = ON;");
     setDb(newDb);
     setInTransaction(false);
     setIsReady(true);

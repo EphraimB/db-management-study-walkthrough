@@ -30,6 +30,10 @@ export default function ConsistencyScenario({ history, onRunCommand, executeSile
     onRunCommand(`INSERT INTO Transfers (from_account, to_account, amount) VALUES (1, 999, 50);`);
   };
 
+  const executeValidTransfer = () => {
+    onRunCommand(`START TRANSACTION;\nINSERT INTO Transfers (from_account, to_account, amount) VALUES (1, 2, 50);\nUPDATE BankAccounts SET balance = balance - 50 WHERE owner_name = 'Alice';\nUPDATE BankAccounts SET balance = balance + 50 WHERE owner_name = 'Bob';\nCOMMIT;`);
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="scenario-card">
@@ -55,12 +59,17 @@ export default function ConsistencyScenario({ history, onRunCommand, executeSile
           </div>
 
           <div className="mt-auto pt-6 flex flex-col gap-3">
-            <button onClick={attemptOverdraft} className="btn-action bg-orange-600 hover:bg-orange-500">
-              Violate CHECK Constraint (Alice overdrafts $5000)
+            <button onClick={executeValidTransfer} className="btn-action btn-green">
+              Successful Transfer (Alice sends $50 to Bob)
             </button>
-            <button onClick={attemptBadForeignKey} className="btn-action bg-orange-600 hover:bg-orange-500">
-              Violate FOREIGN KEY (Transfer to Account ID 999)
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={attemptOverdraft} className="btn-action bg-orange-600 hover:bg-orange-500 flex-1">
+                Violate CHECK Constraint (Alice overdrafts $5000)
+              </button>
+              <button onClick={attemptBadForeignKey} className="btn-action bg-orange-600 hover:bg-orange-500 flex-1">
+                Violate FOREIGN KEY (Transfer to Account ID 999)
+              </button>
+            </div>
           </div>
         </div>
 
