@@ -273,79 +273,90 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
             </div>
           )}
 
-          {/* STEP 4: CLOSURE ANIMATION */}
+          {/* STEP 4: CLOSURE ANIMATION (L/M/R) */}
           {step === 4 && (
             <div className="scenario-card animate-fade-in border-orange-500/30">
-              <h3 className="scenario-title text-orange-400">Visual Functional Dependency Mapping</h3>
+              <h3 className="scenario-title text-orange-400">Formal Candidate Key Algorithm (Left / Both / Right)</h3>
               
               <div className="bg-[#0b0f19] p-6 rounded-lg border border-slate-700 font-mono text-sm shadow-inner relative overflow-hidden">
                 <div className="mb-4 text-slate-400">
                   SCHEMA: <span className="text-white">Enrollments(student_id, course_id, instructor, room_number)</span><br/>
-                  RULE: <span className="text-white">Every determinant must be a candidate key.</span>
                 </div>
                 
-                <div className="mb-4">
-                  <div className="text-orange-400 mb-2">TARGET DEPENDENCY TO TEST:</div>
-                  <div className="bg-slate-800/50 p-2 rounded inline-block border border-slate-700">
-                    <code className="text-lg">instructor &rarr; course_id, room_number</code>
-                  </div>
-                </div>
-
-                <div className="mb-6 flex items-center justify-center gap-8">
-                  <div className="text-center">
-                    <div className="bg-slate-800 px-4 py-2 rounded border border-slate-600 text-slate-300">
-                      Let <strong className="text-rose-400">C</strong> = <code className="text-rose-200">instructor</code>
-                    </div>
-                  </div>
-                  <div className="text-slate-500 flex flex-col items-center">
-                    <span className="text-xs tracking-widest uppercase mb-1">Determines</span>
-                    <ArrowRight size={24} className="text-orange-500" />
-                  </div>
-                  <div className="text-center">
-                    <div className="bg-slate-800 px-4 py-2 rounded border border-slate-600 text-slate-300">
-                      Let <strong className="text-blue-400">B</strong> = <code className="text-blue-200">course_id, room_number</code>
-                    </div>
+                <div className="mb-6 bg-slate-800/50 p-4 rounded border border-slate-700">
+                  <div className="text-orange-400 mb-2 font-bold uppercase tracking-wider text-xs font-sans">Functional Dependencies (FDs)</div>
+                  <div className="font-mono text-slate-300">
+                    <div className="mb-1">FD1: <code className="text-emerald-400">student_id, course_id</code> &rarr; <code className="text-emerald-200">instructor, room_number</code> <span className="text-slate-500 italic text-xs font-sans">(Intended Primary Key)</span></div>
+                    <div>FD2: <code className="text-rose-400">instructor</code> &rarr; <code className="text-rose-200">course_id, room_number</code> <span className="text-slate-500 italic text-xs font-sans">(Business Rule)</span></div>
                   </div>
                 </div>
 
                 {animStep >= 1 && (
-                  <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-400 mb-2">Mathematical Notation: <code className="text-lg text-white font-bold">C &rarr; B</code></div>
-                    <div className="text-sm text-slate-500 font-sans">
-                      We must determine the functional closure of <strong className="text-rose-400">C</strong>. If <code className="text-rose-400 font-mono">&#123;C&#125;<sup className="text-[10px]">+</sup></code> generates every column in the table, then <strong className="text-rose-400">C</strong> is a valid Primary Key candidate.
-                    </div>
+                  <div className="animate-fade-in mb-6">
+                    <div className="text-slate-400 mb-2 font-bold text-xs uppercase tracking-wider font-sans">Sort Attributes into L/B/R Sets</div>
+                    <table className="w-full text-center border-collapse border border-slate-700">
+                      <thead>
+                        <tr className="bg-slate-800">
+                          <th className="p-2 border border-slate-700 text-emerald-400 font-sans">LEFT <br/><span className="text-[10px] font-normal text-slate-400">(Must be in Key)</span></th>
+                          <th className="p-2 border border-slate-700 text-amber-400 font-sans">BOTH <br/><span className="text-[10px] font-normal text-slate-400">(Might be in Key)</span></th>
+                          <th className="p-2 border border-slate-700 text-rose-400 font-sans">RIGHT <br/><span className="text-[10px] font-normal text-slate-400">(Never in Key)</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-slate-900/50 font-mono">
+                          <td className="p-3 border border-slate-700">student_id</td>
+                          <td className="p-3 border border-slate-700">course_id, instructor</td>
+                          <td className="p-3 border border-slate-700">room_number</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
                 {animStep >= 2 && (
                   <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-300 mb-2 font-bold font-sans">1. Start with C</div>
-                    <code className="text-rose-400">&#123;C&#125;<sup className="text-[10px]">+</sup> = &#123; instructor &#125;</code>
+                    <div className="text-slate-300 mb-2 font-bold font-sans">1. Start by testing LEFT</div>
+                    <code className="text-emerald-400">&#123;student_id&#125;<sup className="text-[10px]">+</sup> = &#123; student_id &#125;</code> <span className="text-slate-500 text-xs font-sans ml-2">(Not all attributes. We must combine it with BOTH.)</span>
                   </div>
                 )}
 
                 {animStep >= 3 && (
                   <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-300 mb-2 font-bold font-sans">2. Apply C &rarr; B</div>
-                    <code className="text-rose-400">&#123;C&#125;<sup className="text-[10px]">+</sup> = &#123; instructor, course_id, room_number &#125;</code>
+                    <div className="text-slate-300 mb-2 font-bold font-sans">2. Combine LEFT with BOTH (Option A)</div>
+                    <code className="text-amber-400">&#123;student_id, course_id&#125;<sup className="text-[10px]">+</sup> = &#123; student_id, course_id, instructor, room_number &#125;</code>
+                    <div className="mt-2 text-emerald-400 font-bold text-xs uppercase font-sans tracking-wide">&rarr; Valid Candidate Key!</div>
                   </div>
                 )}
 
                 {animStep >= 4 && (
+                  <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
+                    <div className="text-slate-300 mb-2 font-bold font-sans">3. Combine LEFT with BOTH (Option B)</div>
+                    <code className="text-amber-400">&#123;student_id, instructor&#125;<sup className="text-[10px]">+</sup> = &#123; student_id, instructor, course_id, room_number &#125;</code>
+                    <div className="mt-2 text-emerald-400 font-bold text-xs uppercase font-sans tracking-wide">&rarr; Valid Candidate Key!</div>
+                  </div>
+                )}
+
+                {animStep >= 5 && (
                   <div className="animate-fade-in mt-6 bg-rose-950/40 p-5 rounded border border-rose-500/40">
-                    <div className="text-rose-400 font-bold mb-3 text-lg font-sans">CONCLUSION</div>
+                    <div className="text-rose-400 font-bold mb-3 text-lg font-sans tracking-wide">BCNF VIOLATION PROOF</div>
                     <p className="text-slate-300 leading-relaxed mb-3 font-sans">
-                      The closure of <strong className="text-rose-400">C</strong> is missing <code className="text-slate-400 bg-black/30 px-1 rounded">student_id</code> (which would be A)! 
+                      Our valid Candidate Keys are <code className="text-emerald-400 bg-emerald-950/50 px-1 rounded font-mono">(student_id, course_id)</code> and <code className="text-emerald-400 bg-emerald-950/50 px-1 rounded font-mono">(student_id, instructor)</code>.
                     </p>
-                    <p className="text-slate-300 leading-relaxed font-sans">
-                      Because <code className="text-rose-400 bg-black/30 px-1 rounded font-mono">&#123;C&#125;<sup className="text-[10px]">+</sup> &ne; &#123;student_id, course_id, instructor, room_number&#125;</code>, <strong className="text-rose-400">C</strong> is <strong>NOT</strong> a Candidate Key. Since <strong className="text-rose-400">C</strong> determines <strong className="text-blue-400">B</strong> but is not a Candidate Key, this violates <strong>Boyce-Codd Normal Form!</strong>
+                    <p className="text-slate-300 leading-relaxed font-sans mb-3 border-l-2 border-rose-500 pl-3">
+                      Look at <strong className="text-rose-400">FD2</strong>: <code className="text-rose-400 font-mono bg-rose-950/50 px-1 rounded">instructor &rarr; course_id, room_number</code>. <br/>
+                      The determinant is <code className="text-rose-400 font-mono">instructor</code>. But is <code className="text-rose-400 font-mono">instructor</code> alone a Candidate Key? <br/>
+                    </p>
+                    <p className="text-slate-300 mt-2 font-bold font-sans">
+                      NO! <span className="font-mono text-rose-400 bg-rose-950/50 px-1 rounded">&#123;instructor&#125;<sup className="text-[10px]">+</sup> = &#123;instructor, course_id, room_number&#125;</span> <span className="text-sm font-normal text-slate-400">(missing student_id)</span>.
+                      <br/><br/>
+                      Because <code className="text-rose-400 font-mono">instructor</code> is a determinant but NOT a Candidate Key, this formally violates Boyce-Codd Normal Form!
                     </p>
                   </div>
                 )}
 
                 {/* Animation Controls */}
                 <div className="mt-8 flex justify-end gap-3 border-t border-slate-700/50 pt-4 font-sans">
-                  {animStep < 4 ? (
+                  {animStep < 5 ? (
                     <button onClick={() => setAnimStep(a => a + 1)} className="btn-action bg-slate-700 hover:bg-slate-600">
                       Next Step
                     </button>
