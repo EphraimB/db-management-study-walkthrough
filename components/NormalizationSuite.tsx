@@ -11,6 +11,7 @@ interface NormalizationSuiteProps {
 export default function NormalizationSuite({ executeQuery, executeSilentQuery }: NormalizationSuiteProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [step, setStep] = useState(0); 
+  const [animStep, setAnimStep] = useState(0); // Sub-steps for the BCNF closure animation
   
   const [tables, setTables] = useState<Record<string, { cols: string[], rows: any[][] }>>({});
 
@@ -29,8 +30,8 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
     if (step === 0) refreshTables(['UNF_StudentRecords']);
     else if (step === 1) refreshTables(['Norm1_StudentRecords']);
     else if (step === 2) refreshTables(['Norm2_Students', 'Norm2_Courses', 'Norm2_Enrollments']);
-    else if (step === 3) refreshTables(['Norm3_Students', 'Norm3_Majors', 'Norm2_Courses', 'Norm2_Enrollments']);
-    else if (step === 4) refreshTables(['Norm3_Students', 'Norm3_Majors', 'NormBC_Instructors', 'NormBC_Enrollments']);
+    else if (step === 3 || step === 4) refreshTables(['Norm3_Students', 'Norm3_Majors', 'Norm2_Courses', 'Norm2_Enrollments']);
+    else if (step === 5) refreshTables(['Norm3_Students', 'Norm3_Majors', 'NormBC_Instructors', 'NormBC_Enrollments']);
   }, [step, executeSilentQuery]);
 
   const handleRun = (query: string) => {
@@ -53,22 +54,33 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
     setStep(3);
   };
 
-  const advanceToBCNF = () => {
-    handleRun(`CREATE TABLE NormBC_Instructors AS SELECT DISTINCT instructor, course_id FROM Norm2_Enrollments;\nCREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM Norm2_Enrollments;`);
+  const advanceTo4NFAnimation = () => {
     setStep(4);
+    setAnimStep(0);
   };
 
-  const renderTable = (name: string) => {
+  const advanceToBCNF = () => {
+    handleRun(`CREATE TABLE NormBC_Instructors AS SELECT DISTINCT instructor, course_id FROM Norm2_Enrollments;\nCREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM Norm2_Enrollments;`);
+    setStep(5);
+  };
+
+  const renderTable = (name: string, keys?: Record<string, string[]>) => {
     const t = tables[name];
     if (!t) return null;
     return (
       <div className="mb-4">
         <h4 className="text-indigo-300 text-xs font-bold mb-1 uppercase tracking-wider">{name}</h4>
         <div className="overflow-x-auto border border-slate-700 rounded max-h-[200px] custom-scrollbar">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
             <thead>
               <tr className="bg-slate-800">
-                {t.cols.map((c, i) => <th key={i} className="px-3 py-2 border-b border-slate-700 text-slate-300 sticky top-0 bg-slate-800">{c}</th>)}
+                {t.cols.map((c, i) => (
+                  <th key={i} className="px-3 py-2 border-b border-slate-700 text-slate-300 sticky top-0 bg-slate-800">
+                    {c}
+                    {keys?.[c]?.includes('PK') && <span className="ml-1.5 inline-block bg-amber-500/20 text-amber-400 border border-amber-500/50 px-1 rounded text-[9px] font-bold">PK</span>}
+                    {keys?.[c]?.includes('FK') && <span className="ml-1.5 inline-block bg-blue-500/20 text-blue-400 border border-blue-500/50 px-1 rounded text-[9px] font-bold">FK</span>}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -99,7 +111,8 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
           { s: 1, label: '1NF' },
           { s: 2, label: '2NF' },
           { s: 3, label: '3NF' },
-          { s: 4, label: 'BCNF' }
+          { s: 4, label: 'FD Rule' },
+          { s: 5, label: 'BCNF' }
         ].map(st => (
           <div key={st.s} className="flex flex-col items-center bg-[#0f172a] px-2">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold border-2 transition-colors ${
@@ -183,39 +196,134 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                 <em>Transitive Dependency:</em> When a non-key attribute depends on another non-key attribute. In 2NF, <code>advisor</code> depended on <code>major</code>, not the student directly. We pulled Majors out to resolve this!
               </p>
               
+              <div className="bg-pink-950/30 p-3 rounded border border-pink-500/20 mb-4 text-xs font-mono text-slate-300">
+                <div className="text-pink-400 font-sans font-bold mb-1 text-[10px] uppercase tracking-wider">Relational Schema</div>
+                <div>Students(<span className="underline decoration-pink-500 underline-offset-2">student_id</span>, student_name, major)</div>
+                <div>Majors(<span className="underline decoration-pink-500 underline-offset-2">major</span>, advisor)</div>
+                <div>Courses(<span className="underline decoration-pink-500 underline-offset-2">course_id</span>, course_name)</div>
+                <div>Enrollments(<span className="underline decoration-pink-500 underline-offset-2">student_id, course_id</span>, instructor)</div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                {renderTable('Norm3_Students')}
-                {renderTable('Norm3_Majors')}
+                {renderTable('Norm3_Students', { student_id: ['PK'], major: ['FK'] })}
+                {renderTable('Norm3_Majors', { major: ['PK'] })}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {renderTable('Norm2_Courses')}
-                {renderTable('Norm2_Enrollments')}
+                {renderTable('Norm2_Courses', { course_id: ['PK'] })}
+                {renderTable('Norm2_Enrollments', { student_id: ['PK', 'FK'], course_id: ['PK', 'FK'] })}
               </div>
 
               <div className="mt-4 flex justify-end">
-                <button onClick={advanceToBCNF} className="btn-action bg-pink-600 hover:bg-pink-500 flex items-center gap-2">
-                  Decompose to BCNF <ArrowRight size={16} />
+                <button onClick={advanceTo4NFAnimation} className="btn-action bg-pink-600 hover:bg-pink-500 flex items-center gap-2">
+                  Prove BCNF Violation <ArrowRight size={16} />
                 </button>
               </div>
             </div>
           )}
 
-          {/* STEP 4: BCNF */}
+          {/* STEP 4: CLOSURE ANIMATION */}
           {step === 4 && (
+            <div className="scenario-card animate-fade-in border-orange-500/30">
+              <h3 className="scenario-title text-orange-400">Visual Functional Dependency Mapping</h3>
+              
+              <div className="bg-[#0b0f19] p-6 rounded-lg border border-slate-700 font-mono text-sm shadow-inner relative overflow-hidden">
+                <div className="mb-6">
+                  {renderTable('Norm2_Enrollments', { student_id: ['PK', 'FK'], course_id: ['PK', 'FK'] })}
+                </div>
+
+                <div className="mb-6 flex items-center justify-center gap-8">
+                  <div className="text-center">
+                    <div className="bg-slate-800 px-4 py-2 rounded border border-slate-600 text-slate-300">
+                      Let <strong className="text-rose-400">A</strong> = <code className="text-rose-200">instructor</code>
+                    </div>
+                  </div>
+                  <div className="text-slate-500 flex flex-col items-center">
+                    <span className="text-xs tracking-widest uppercase mb-1">Determines</span>
+                    <ArrowRight size={24} className="text-orange-500" />
+                  </div>
+                  <div className="text-center">
+                    <div className="bg-slate-800 px-4 py-2 rounded border border-slate-600 text-slate-300">
+                      Let <strong className="text-blue-400">B</strong> = <code className="text-blue-200">course_id</code>
+                    </div>
+                  </div>
+                </div>
+
+                {animStep >= 1 && (
+                  <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
+                    <div className="text-slate-400 mb-2">Mathematical Notation: <code className="text-lg text-white font-bold">A &rarr; B</code></div>
+                    <div className="text-sm text-slate-500 font-sans">
+                      We must determine the functional closure of <strong className="text-rose-400">A</strong>. If <code className="text-rose-400 font-mono">&#123;A&#125;<sup className="text-[10px]">+</sup></code> generates every column in the table, then <strong className="text-rose-400">A</strong> is a valid Primary Key candidate.
+                    </div>
+                  </div>
+                )}
+
+                {animStep >= 2 && (
+                  <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
+                    <div className="text-slate-300 mb-2 font-bold font-sans">1. Start with A</div>
+                    <code className="text-rose-400">&#123;A&#125;<sup className="text-[10px]">+</sup> = &#123; instructor &#125;</code>
+                  </div>
+                )}
+
+                {animStep >= 3 && (
+                  <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
+                    <div className="text-slate-300 mb-2 font-bold font-sans">2. Apply A &rarr; B</div>
+                    <code className="text-rose-400">&#123;A&#125;<sup className="text-[10px]">+</sup> = &#123; instructor, course_id &#125;</code>
+                  </div>
+                )}
+
+                {animStep >= 4 && (
+                  <div className="animate-fade-in mt-6 bg-rose-950/40 p-5 rounded border border-rose-500/40">
+                    <div className="text-rose-400 font-bold mb-3 text-lg font-sans">CONCLUSION</div>
+                    <p className="text-slate-300 leading-relaxed mb-3 font-sans">
+                      The closure of <strong className="text-rose-400">A</strong> is missing <code className="text-slate-400 bg-black/30 px-1 rounded">student_id</code>! 
+                    </p>
+                    <p className="text-slate-300 leading-relaxed font-sans">
+                      Because <code className="text-rose-400 bg-black/30 px-1 rounded font-mono">&#123;A&#125;<sup className="text-[10px]">+</sup> &ne; &#123;student_id, course_id, instructor&#125;</code>, <strong className="text-rose-400">A</strong> is <strong>NOT</strong> a Candidate Key. Since <strong className="text-rose-400">A</strong> determines <strong className="text-blue-400">B</strong> but is not a Candidate Key, this violates <strong>Boyce-Codd Normal Form!</strong>
+                    </p>
+                  </div>
+                )}
+
+                {/* Animation Controls */}
+                <div className="mt-8 flex justify-end gap-3 border-t border-slate-700/50 pt-4 font-sans">
+                  {animStep < 4 ? (
+                    <button onClick={() => setAnimStep(a => a + 1)} className="btn-action bg-slate-700 hover:bg-slate-600">
+                      Next Step
+                    </button>
+                  ) : (
+                    <button onClick={advanceToBCNF} className="btn-action bg-rose-600 hover:bg-rose-500 flex items-center gap-2 animate-pulse-glow">
+                      Decompose to BCNF <ArrowRight size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: BCNF */}
+          {step === 5 && (
             <div className="scenario-card animate-fade-in border-rose-500/30">
               <h3 className="scenario-title text-rose-400">Boyce-Codd Normal Form (BCNF)</h3>
-              <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                <strong>Rule:</strong> Every determinant must be a candidate key.<br/>
-                In our Enrollments table, <code>instructor</code> mathematically determines <code>course_id</code> (an instructor teaches only 1 course), but <code>instructor</code> was not a candidate key. We split Enrollments to resolve this final anomaly!
+              <p className="text-sm text-slate-300 mb-3 leading-relaxed">
+                <strong>Rule:</strong> For every functional dependency <code>X &rarr; Y</code>, <code>X</code> must be a superkey.
               </p>
               
+              <div className="bg-rose-950/30 p-3 rounded border border-rose-500/20 mb-4 text-xs text-slate-300 leading-relaxed">
+                <p className="mb-2"><strong>The Hidden Dependency:</strong> In 3NF, our Enrollments table has the key <code>(student_id, course_id)</code>. But our business rule states an instructor teaches exactly 1 course. This means <code>instructor &rarr; course_id</code>.</p>
+                <p className="mb-3"><strong>The Violation:</strong> Because <code>instructor</code> determines <code>course_id</code>, but <code>instructor</code> is NOT a candidate key for the whole table, it fails BCNF! We split Enrollments to fix this!</p>
+                
+                <div className="text-rose-400 font-sans font-bold mb-1 text-[10px] uppercase tracking-wider">Final Relational Schema</div>
+                <div className="font-mono">Instructors(<span className="underline decoration-rose-500 underline-offset-2">instructor</span>, course_id)</div>
+                <div className="font-mono">Enrollments(<span className="underline decoration-rose-500 underline-offset-2">student_id, instructor</span>)</div>
+                <div className="text-[10px] italic mt-1 text-slate-500">(Students, Majors, and Courses remain unchanged)</div>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
-                {renderTable('Norm3_Students')}
-                {renderTable('Norm3_Majors')}
+                {renderTable('Norm3_Students', { student_id: ['PK'], major: ['FK'] })}
+                {renderTable('Norm3_Majors', { major: ['PK'] })}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {renderTable('NormBC_Enrollments')}
-                {renderTable('NormBC_Instructors')}
+                {renderTable('NormBC_Enrollments', { student_id: ['PK', 'FK'], instructor: ['PK', 'FK'] })}
+                {renderTable('NormBC_Instructors', { instructor: ['PK'] })}
               </div>
               
               <div className="mt-6 text-center text-emerald-400 font-bold bg-emerald-900/30 py-4 rounded border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
