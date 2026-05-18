@@ -29,15 +29,15 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
         newTables[tName] = { cols: results[0].columns, rows: results[0].values };
       }
     });
-    setTables(prev => ({ ...prev, ...newTables })); // Merge to keep old tables during transitions if needed
+    setTables(prev => ({ ...prev, ...newTables }));
   };
 
   useEffect(() => {
     if (step === 0) refreshTables(['UNF_StudentRecords']);
-    else if (step === 1) refreshTables(['Norm1_StudentRecords']);
-    else if (step === 2) refreshTables(['Norm2_Students', 'Norm2_Courses', 'Norm2_Enrollments']);
-    else if (step === 3) refreshTables(['Norm3_Students', 'Norm3_Majors', 'Norm2_Courses', 'Norm2_Enrollments']);
-    else if (step === 4) refreshTables(['Norm3_Students', 'Norm3_Majors', 'NormBC_Instructors', 'NormBC_Enrollments']);
+    else if (step === 1) refreshTables(['Norm1_Students', 'Norm1_StudentMajors', 'Norm1_StudentCourses']);
+    else if (step === 2) refreshTables(['Norm2_Students', 'Norm2_Majors', 'Norm2_StudentMajors', 'Norm2_Courses', 'Norm2_Enrollments']);
+    else if (step === 3) refreshTables(['Norm3_Students', 'Norm3_Advisors', 'Norm2_Majors', 'Norm2_StudentMajors', 'Norm2_Courses', 'Norm2_Enrollments']);
+    else if (step === 4) refreshTables(['Norm3_Students', 'Norm3_Advisors', 'Norm2_Majors', 'Norm2_StudentMajors', 'Norm2_Courses', 'NormBC_Instructors', 'NormBC_Enrollments']);
   }, [step, executeSilentQuery]);
 
   const handleRun = (query: string) => {
@@ -46,25 +46,52 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
   };
 
   const advanceTo1NF = () => {
-    handleRun(`CREATE TABLE Norm1_StudentRecords (student_id INTEGER, student_name TEXT, student_email TEXT, major TEXT, department_head TEXT, course_id TEXT, course_name TEXT, credits INTEGER, instructor TEXT, room_number TEXT);\nINSERT INTO Norm1_StudentRecords VALUES \n(1, 'Alice', 'alice@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro', 4, 'Turing', 'R101'),\n(1, 'Alice', 'alice@uni.edu', 'Computer Science', 'Dr. Smith', 'MA101', 'Calc', 4, 'Newton', 'R102'),\n(2, 'Bob', 'bob@uni.edu', 'Biology', 'Dr. Jones', 'BI101', 'Intro', 4, 'Darwin', 'R201'),\n(2, 'Bob', 'bob@uni.edu', 'Biology', 'Dr. Jones', 'CS101', 'Intro', 4, 'Lovelace', 'R101'),\n(3, 'Charlie', 'charlie@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro', 4, 'Turing', 'R101');`);
+    // 1NF extracts repeating groups into separate tables so the parent table does not duplicate its PK
+    handleRun(`
+CREATE TABLE Norm1_Students (student_id INTEGER, student_name TEXT, advisor_id TEXT, advisor_name TEXT);
+INSERT INTO Norm1_Students VALUES (1, 'Alice', 'ADV1', 'Dr. White'), (2, 'Bob', 'ADV2', 'Dr. Black'), (3, 'Charlie', 'ADV1', 'Dr. White');
+
+CREATE TABLE Norm1_StudentMajors (student_id INTEGER, major TEXT, department_head TEXT);
+INSERT INTO Norm1_StudentMajors VALUES (1, 'Computer Science', 'Dr. Smith'), (1, 'Biology', 'Dr. Jones'), (2, 'Biology', 'Dr. Jones'), (3, 'Computer Science', 'Dr. Smith');
+
+CREATE TABLE Norm1_StudentCourses (student_id INTEGER, course_id TEXT, course_name TEXT, instructor TEXT, room_number TEXT);
+INSERT INTO Norm1_StudentCourses VALUES (1, 'CS101', 'Intro', 'Turing', 'R101'), (1, 'BI101', 'Intro', 'Darwin', 'R201'), (2, 'BI101', 'Intro', 'Darwin', 'R201'), (2, 'CS101', 'Intro', 'Lovelace', 'R101'), (3, 'CS101', 'Intro', 'Turing', 'R101');
+    `.trim());
     setStep(1);
     setAnimStep(0);
   };
 
   const advanceTo2NF = () => {
-    handleRun(`CREATE TABLE Norm2_Students AS SELECT DISTINCT student_id, student_name, student_email, major, department_head FROM Norm1_StudentRecords;\nCREATE TABLE Norm2_Courses AS SELECT DISTINCT course_id, course_name, credits FROM Norm1_StudentRecords;\nCREATE TABLE Norm2_Enrollments AS SELECT DISTINCT student_id, course_id, instructor, room_number FROM Norm1_StudentRecords;`);
+    // 2NF eliminates partial dependencies from composite keys
+    handleRun(`
+CREATE TABLE Norm2_Students AS SELECT * FROM Norm1_Students;
+
+CREATE TABLE Norm2_Majors AS SELECT DISTINCT major, department_head FROM Norm1_StudentMajors;
+CREATE TABLE Norm2_StudentMajors AS SELECT DISTINCT student_id, major FROM Norm1_StudentMajors;
+
+CREATE TABLE Norm2_Courses AS SELECT DISTINCT course_id, course_name FROM Norm1_StudentCourses;
+CREATE TABLE Norm2_Enrollments AS SELECT DISTINCT student_id, course_id, instructor, room_number FROM Norm1_StudentCourses;
+    `.trim());
     setStep(2);
     setAnimStep(0);
   };
 
   const advanceTo3NF = () => {
-    handleRun(`CREATE TABLE Norm3_Majors AS SELECT DISTINCT major, department_head FROM Norm2_Students;\nCREATE TABLE Norm3_Students AS SELECT DISTINCT student_id, student_name, student_email, major FROM Norm2_Students;`);
+    // 3NF eliminates transitive dependencies (advisor_name depends on advisor_id)
+    handleRun(`
+CREATE TABLE Norm3_Advisors AS SELECT DISTINCT advisor_id, advisor_name FROM Norm2_Students;
+CREATE TABLE Norm3_Students AS SELECT DISTINCT student_id, student_name, advisor_id FROM Norm2_Students;
+    `.trim());
     setStep(3);
     setAnimStep(0);
   };
 
   const advanceToBCNF = () => {
-    handleRun(`CREATE TABLE NormBC_Instructors AS SELECT DISTINCT instructor, course_id, room_number FROM Norm2_Enrollments;\nCREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM Norm2_Enrollments;`);
+    // BCNF eliminates non-key determinants
+    handleRun(`
+CREATE TABLE NormBC_Instructors AS SELECT DISTINCT instructor, course_id, room_number FROM Norm2_Enrollments;
+CREATE TABLE NormBC_Enrollments AS SELECT DISTINCT student_id, instructor FROM Norm2_Enrollments;
+    `.trim());
     setStep(4);
     setAnimStep(0);
   };
@@ -79,6 +106,7 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
 
     const bgHighlight = highlightColor === 'purple' ? 'bg-purple-900/40 border-purple-500/50' : 
                         highlightColor === 'pink' ? 'bg-pink-900/40 border-pink-500/50' :
+                        highlightColor === 'cyan' ? 'bg-cyan-900/40 border-cyan-500/50' :
                         highlightColor === 'rose' ? 'bg-rose-900/40 border-rose-500/50' :
                         'bg-indigo-900/40 border-indigo-500/50';
 
@@ -133,7 +161,7 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
     setTimeout(() => {
       executeSilentQuery(`
         WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 50000)
-        INSERT INTO Norm3_Students (student_id, student_name, student_email, major) SELECT x+10, 'Student_' || x, 'student_' || x || '@uni.edu', 'Computer Science' FROM cnt;
+        INSERT INTO Norm3_Students (student_id, student_name, advisor_id) SELECT x+10, 'Student_' || x, 'ADV1' FROM cnt;
       `);
       executeSilentQuery(`
         WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x < 50000)
@@ -205,7 +233,7 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-slate-500/30">
                 <h3 className="scenario-title text-slate-400">0th Normal Form (UNF)</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                  <strong>Problem:</strong> Non-atomic values. The table has multiple courses stuffed into single cells as a comma-separated string. We cannot query this easily!
+                  <strong>Problem:</strong> Non-atomic values. The table has multiple values stuffed into single cells as a comma-separated string (e.g. Alice's double major). A table cannot have multiple rows for the same primary key, so we must extract repeating groups!
                 </p>
                 {renderFramerTable('UNF_StudentRecords')}
                 <div className="mt-4 flex justify-end">
@@ -221,21 +249,26 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               <motion.div key="step1" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-indigo-500/30 overflow-hidden">
                 <h3 className="scenario-title text-indigo-400">1st Normal Form (1NF) &rarr; 2NF</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                  Data is atomic, but we have a <strong className="text-purple-400">Partial Dependency</strong>. <br/>
-                  The Primary Key is <code>(student_id, course_id)</code>, but <code>student_name</code> depends ONLY on <code>student_id</code>!
+                  Repeating groups are extracted into their own tables! But now our child tables have <strong className="text-purple-400">Partial Dependencies</strong> against their composite keys.
                 </p>
 
                 {animStep === 1 && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-purple-950/40 border border-purple-500/50 p-4 rounded-lg mb-4 flex items-start gap-3 text-purple-200">
                     <AlertTriangle className="shrink-0 mt-0.5 text-purple-400" size={18} />
                     <div>
-                      <div className="font-bold text-purple-400 mb-1 font-mono">student_id &rarr; student_name, student_email, major...</div>
-                      <div className="text-sm">These attributes don't care about the <code>course_id</code>. We must split them out to form a <code>Students</code> table to eliminate data redundancy and formally establish Primary Keys!</div>
+                      <div className="font-bold text-purple-400 mb-1 font-mono">major &rarr; department_head <span className="text-slate-400 text-xs ml-2">|</span> course_id &rarr; course_name</div>
+                      <div className="text-sm">These attributes don't depend on the <code>student_id</code> half of the composite key. We must split them out!</div>
                     </div>
                   </motion.div>
                 )}
 
-                {renderFramerTable('Norm1_StudentRecords', {}, animStep === 1 ? ['student_id', 'student_name', 'student_email', 'major', 'department_head'] : [], 'purple')}
+                <div className="flex flex-col gap-4">
+                  {renderFramerTable('Norm1_Students', { student_id: ['PK'] })}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFramerTable('Norm1_StudentMajors', { student_id: ['PK'], major: ['PK'] }, animStep === 1 ? ['major', 'department_head'] : [], 'purple')}
+                    {renderFramerTable('Norm1_StudentCourses', { student_id: ['PK'], course_id: ['PK'] }, animStep === 1 ? ['course_id', 'course_name'] : [], 'purple')}
+                  </div>
+                </div>
                 
                 <div className="mt-4 flex justify-end gap-3">
                   {animStep === 0 ? (
@@ -256,24 +289,28 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               <motion.div key="step2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-purple-500/30 overflow-hidden">
                 <h3 className="scenario-title text-purple-400">2nd Normal Form (2NF) &rarr; 3NF</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                  No partial dependencies exist, but we have a <strong className="text-pink-400">Transitive Dependency</strong> in the Students table.
+                  No partial dependencies exist, but we have a <strong className="text-cyan-400">Transitive Dependency</strong> inside the main Students table.
                 </p>
 
                 {animStep === 1 && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-pink-950/40 border border-pink-500/50 p-4 rounded-lg mb-4 flex items-start gap-3 text-pink-200">
-                    <AlertTriangle className="shrink-0 mt-0.5 text-pink-400" size={18} />
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-cyan-950/40 border border-cyan-500/50 p-4 rounded-lg mb-4 flex items-start gap-3 text-cyan-200">
+                    <AlertTriangle className="shrink-0 mt-0.5 text-cyan-400" size={18} />
                     <div>
-                      <div className="font-bold text-pink-400 mb-1 font-mono">major &rarr; department_head</div>
-                      <div className="text-sm">The <code>department_head</code> depends on the <code>major</code>, not directly on the <code>student_id</code>. We must extract this into a <code>Majors</code> table!</div>
+                      <div className="font-bold text-cyan-400 mb-1 font-mono">advisor_id &rarr; advisor_name</div>
+                      <div className="text-sm">The <code>advisor_name</code> depends on the <code>advisor_id</code>, not directly on the <code>student_id</code>. We must extract this into an <code>Advisors</code> table!</div>
                     </div>
                   </motion.div>
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {renderFramerTable('Norm2_Students', {}, animStep === 1 ? ['major', 'department_head'] : [], 'pink')}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFramerTable('Norm2_Courses')}
-                    {renderFramerTable('Norm2_Enrollments')}
+                  {renderFramerTable('Norm2_Students', { student_id: ['PK'] }, animStep === 1 ? ['advisor_id', 'advisor_name'] : [], 'cyan')}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+                    {renderFramerTable('Norm2_StudentMajors', { student_id: ['PK', 'FK'], major: ['PK', 'FK'] })}
+                    {renderFramerTable('Norm2_Enrollments', { student_id: ['PK', 'FK'], course_id: ['PK', 'FK'] })}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+                    {renderFramerTable('Norm2_Majors', { major: ['PK'] })}
+                    {renderFramerTable('Norm2_Courses', { course_id: ['PK'] })}
                   </div>
                 </div>
 
@@ -283,7 +320,7 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                       Find Dependencies <Lightbulb size={16} />
                     </button>
                   ) : (
-                    <button onClick={advanceTo3NF} className="btn-action bg-pink-600 hover:bg-pink-500 flex items-center gap-2 animate-pulse-glow">
+                    <button onClick={advanceTo3NF} className="btn-action bg-cyan-600 hover:bg-cyan-500 flex items-center gap-2 animate-pulse-glow">
                       Extract to 3NF <ArrowRight size={16} />
                     </button>
                   )}
@@ -293,8 +330,8 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
 
             {/* STEP 3: 3NF & BCNF Decision */}
             {step === 3 && (
-              <motion.div key="step3" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-pink-500/30 overflow-hidden">
-                <h3 className="scenario-title text-pink-400">3rd Normal Form (3NF) &rarr; BCNF</h3>
+              <motion.div key="step3" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="scenario-card border-cyan-500/30 overflow-hidden">
+                <h3 className="scenario-title text-cyan-400">3rd Normal Form (3NF) &rarr; BCNF</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
                   We are technically in 3NF, but there's a hidden anomaly in <code>Enrollments</code> involving the Candidate Keys. We must formally prove this using the Left/Both/Right algorithm.
                 </p>
@@ -350,10 +387,17 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {renderFramerTable('Norm2_Enrollments', { student_id: ['PK'], course_id: ['PK'] }, animStep >= 4 ? ['instructor', 'course_id', 'room_number'] : [], 'rose')}
+                  {renderFramerTable('Norm2_Enrollments', { student_id: ['PK', 'FK'], course_id: ['PK', 'FK'] }, animStep >= 4 ? ['instructor', 'course_id', 'room_number'] : [], 'rose')}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
-                    {renderFramerTable('Norm3_Students')}
-                    {renderFramerTable('Norm3_Majors')}
+                    {renderFramerTable('Norm3_Students', { student_id: ['PK'], advisor_id: ['FK'] })}
+                    {renderFramerTable('Norm3_Advisors', { advisor_id: ['PK'] })}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50">
+                    {renderFramerTable('Norm2_StudentMajors', { student_id: ['PK', 'FK'], major: ['PK', 'FK'] })}
+                    {renderFramerTable('Norm2_Majors', { major: ['PK'] })}
+                    {renderFramerTable('Norm2_Courses', { course_id: ['PK'] })}
                   </div>
                 </div>
 
@@ -395,9 +439,16 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                   {renderFramerTable('NormBC_Enrollments', { student_id: ['PK', 'FK'], instructor: ['PK', 'FK'] })}
                   {renderFramerTable('NormBC_Instructors', { instructor: ['PK'] })}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {renderFramerTable('Norm3_Students', { student_id: ['PK'], major: ['FK'] })}
-                  {renderFramerTable('Norm3_Majors', { major: ['PK'] })}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {renderFramerTable('Norm3_Students', { student_id: ['PK'], advisor_id: ['FK'] })}
+                  {renderFramerTable('Norm3_Advisors', { advisor_id: ['PK'] })}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {renderFramerTable('Norm2_StudentMajors', { student_id: ['PK', 'FK'], major: ['PK', 'FK'] })}
+                  {renderFramerTable('Norm2_Majors', { major: ['PK'] })}
+                  {renderFramerTable('Norm2_Courses', { course_id: ['PK'] })}
                 </div>
 
                 <div className="mt-6 flex justify-end">
@@ -408,14 +459,13 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
               </motion.div>
             )}
 
-            {/* STEP 5: INDEXING (Previously 6) */}
+            {/* STEP 5: INDEXING */}
             {step === 5 && (
               <motion.div key="step5" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="scenario-card border-indigo-500/30">
                 <h3 className="scenario-title text-indigo-400">The Tradeoff: Indexing</h3>
                 <p className="text-sm text-slate-300 mb-4 leading-relaxed">
                   Normalization is beautiful, but requires expensive <code>JOIN</code> operations. Foreign Keys are NOT automatically indexed!
                 </p>
-                {/* Indexing Content exactly as before */}
                 <div className="bg-[#0b0f19] p-6 rounded-lg border border-slate-700 font-mono text-sm shadow-inner relative">
                   {indexStatus === 'idle' && (
                     <div className="text-center py-6">

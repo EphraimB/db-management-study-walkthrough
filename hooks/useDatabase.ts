@@ -64,10 +64,14 @@ export function useDatabase() {
         CREATE TABLE UNF_StudentRecords (
           student_id INTEGER,
           student_name TEXT,
-          student_email TEXT,
+          advisor_id TEXT,
+          advisor_name TEXT,
           major TEXT,
           department_head TEXT,
-          course_data TEXT
+          course_id TEXT,
+          course_name TEXT,
+          instructor TEXT,
+          room_number TEXT
         );
 
         INSERT INTO BankAccounts (owner_name, balance) VALUES ('Alice', 1000.00);
@@ -90,9 +94,9 @@ export function useDatabase() {
           (4, 300.00, '2023-10-20', 'West');
           
         INSERT INTO UNF_StudentRecords VALUES 
-          (1, 'Alice', 'alice@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101:Intro(4)-Turing[R101], MA101:Calc(4)-Newton[R102]'),
-          (2, 'Bob', 'bob@uni.edu', 'Biology', 'Dr. Jones', 'BI101:Intro(4)-Darwin[R201], CS101:Intro(4)-Lovelace[R101]'),
-          (3, 'Charlie', 'charlie@uni.edu', 'Computer Science', 'Dr. Smith', 'CS101:Intro(4)-Turing[R101]');
+          (1, 'Alice', 'ADV1', 'Dr. White', 'Computer Science, Biology', 'Dr. Smith, Dr. Jones', 'CS101, BI101', 'Intro, Intro', 'Turing, Darwin', 'R101, R201'),
+          (2, 'Bob', 'ADV2', 'Dr. Black', 'Biology', 'Dr. Jones', 'BI101, CS101', 'Intro, Intro', 'Darwin, Lovelace', 'R201, R101'),
+          (3, 'Charlie', 'ADV1', 'Dr. White', 'Computer Science', 'Dr. Smith', 'CS101', 'Intro', 'Turing', 'R101');
       `);
       
       setDb(database);
