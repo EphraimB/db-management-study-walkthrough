@@ -234,7 +234,7 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                 <div className="mb-6 flex items-center justify-center gap-8">
                   <div className="text-center">
                     <div className="bg-slate-800 px-4 py-2 rounded border border-slate-600 text-slate-300">
-                      Let <strong className="text-rose-400">A</strong> = <code className="text-rose-200">instructor</code>
+                      Let <strong className="text-rose-400">C</strong> = <code className="text-rose-200">instructor</code>
                     </div>
                   </div>
                   <div className="text-slate-500 flex flex-col items-center">
@@ -250,24 +250,24 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
 
                 {animStep >= 1 && (
                   <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-400 mb-2">Mathematical Notation: <code className="text-lg text-white font-bold">A &rarr; B</code></div>
+                    <div className="text-slate-400 mb-2">Mathematical Notation: <code className="text-lg text-white font-bold">C &rarr; B</code></div>
                     <div className="text-sm text-slate-500 font-sans">
-                      We must determine the functional closure of <strong className="text-rose-400">A</strong>. If <code className="text-rose-400 font-mono">&#123;A&#125;<sup className="text-[10px]">+</sup></code> generates every column in the table, then <strong className="text-rose-400">A</strong> is a valid Primary Key candidate.
+                      We must determine the functional closure of <strong className="text-rose-400">C</strong>. If <code className="text-rose-400 font-mono">&#123;C&#125;<sup className="text-[10px]">+</sup></code> generates every column in the table, then <strong className="text-rose-400">C</strong> is a valid Primary Key candidate.
                     </div>
                   </div>
                 )}
 
                 {animStep >= 2 && (
                   <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-300 mb-2 font-bold font-sans">1. Start with A</div>
-                    <code className="text-rose-400">&#123;A&#125;<sup className="text-[10px]">+</sup> = &#123; instructor &#125;</code>
+                    <div className="text-slate-300 mb-2 font-bold font-sans">1. Start with C</div>
+                    <code className="text-rose-400">&#123;C&#125;<sup className="text-[10px]">+</sup> = &#123; instructor &#125;</code>
                   </div>
                 )}
 
                 {animStep >= 3 && (
                   <div className="animate-fade-in mb-4 bg-slate-900 p-4 rounded border border-slate-800">
-                    <div className="text-slate-300 mb-2 font-bold font-sans">2. Apply A &rarr; B</div>
-                    <code className="text-rose-400">&#123;A&#125;<sup className="text-[10px]">+</sup> = &#123; instructor, course_id &#125;</code>
+                    <div className="text-slate-300 mb-2 font-bold font-sans">2. Apply C &rarr; B</div>
+                    <code className="text-rose-400">&#123;C&#125;<sup className="text-[10px]">+</sup> = &#123; instructor, course_id &#125;</code>
                   </div>
                 )}
 
@@ -275,10 +275,10 @@ export default function NormalizationSuite({ executeQuery, executeSilentQuery }:
                   <div className="animate-fade-in mt-6 bg-rose-950/40 p-5 rounded border border-rose-500/40">
                     <div className="text-rose-400 font-bold mb-3 text-lg font-sans">CONCLUSION</div>
                     <p className="text-slate-300 leading-relaxed mb-3 font-sans">
-                      The closure of <strong className="text-rose-400">A</strong> is missing <code className="text-slate-400 bg-black/30 px-1 rounded">student_id</code>! 
+                      The closure of <strong className="text-rose-400">C</strong> is missing <code className="text-slate-400 bg-black/30 px-1 rounded">student_id</code> (which would be A)! 
                     </p>
                     <p className="text-slate-300 leading-relaxed font-sans">
-                      Because <code className="text-rose-400 bg-black/30 px-1 rounded font-mono">&#123;A&#125;<sup className="text-[10px]">+</sup> &ne; &#123;student_id, course_id, instructor&#125;</code>, <strong className="text-rose-400">A</strong> is <strong>NOT</strong> a Candidate Key. Since <strong className="text-rose-400">A</strong> determines <strong className="text-blue-400">B</strong> but is not a Candidate Key, this violates <strong>Boyce-Codd Normal Form!</strong>
+                      Because <code className="text-rose-400 bg-black/30 px-1 rounded font-mono">&#123;C&#125;<sup className="text-[10px]">+</sup> &ne; &#123;student_id, course_id, instructor&#125;</code>, <strong className="text-rose-400">C</strong> is <strong>NOT</strong> a Candidate Key. Since <strong className="text-rose-400">C</strong> determines <strong className="text-blue-400">B</strong> but is not a Candidate Key, this violates <strong>Boyce-Codd Normal Form!</strong>
                     </p>
                   </div>
                 )}
