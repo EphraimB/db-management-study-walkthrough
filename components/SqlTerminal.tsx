@@ -1,41 +1,30 @@
-import { useState, useRef, useEffect } from 'react';
-import { Play, TerminalSquare } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
 import { QueryExecResult } from 'sql.js';
 
-type HistoryItem = {
+export type HistoryItem = {
   id: number;
   query: string;
   results: QueryExecResult[] | null;
   error: string | null;
+  affectedRows?: number;
 };
 
 interface SqlTerminalProps {
   history: HistoryItem[];
-  onRun: (query: string) => void;
-  isReady: boolean;
+  title?: string;
+  statusColor?: string;
+  onRun?: (query: string) => void;
 }
 
-export default function SqlTerminal({ history, onRun, isReady }: SqlTerminalProps) {
-  const [query, setQuery] = useState("");
+export default function SqlTerminal({ history, title = "mysql>", statusColor = "bg-emerald-500", onRun }: SqlTerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState('');
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [history]);
-
-  const handleRun = () => {
-    if (!isReady || !query.trim()) return;
-    onRun(query);
-    setQuery(''); // Clear input after run
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      handleRun();
-    }
-  };
 
   // Function to format errors to look more like MySQL
   const formatError = (err: string) => {
@@ -44,48 +33,53 @@ export default function SqlTerminal({ history, onRun, isReady }: SqlTerminalProp
     return `ERROR 1064 (42000): ${err}`;
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input.trim() && onRun) {
+      onRun(input);
+      setInput('');
+    }
+  };
+
   return (
-    <div className="glass-panel p-4 flex flex-col h-full animate-fade-in border border-white/20 shadow-2xl">
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10 text-orange-400">
-        <TerminalSquare size={20} />
-        <h2 className="text-xl font-bold font-mono">MySQL Terminal</h2>
+    <div className="terminal-panel h-full min-h-[300px] flex flex-col">
+      <div className="terminal-header">
+        <div className="terminal-title">
+          {title}
+        </div>
+        <div className={`w-2.5 h-2.5 rounded-full ${statusColor} shadow-[0_0_8px_currentColor] opacity-80`} />
       </div>
       
-      {/* History Area */}
-      <div 
-        ref={scrollRef}
-        className="flex-grow overflow-y-auto mb-4 space-y-4 font-mono text-sm pr-2 custom-scrollbar"
-      >
+      <div ref={scrollRef} className="terminal-body custom-scrollbar space-y-4">
         {history.length === 0 && (
-          <div className="text-gray-500 italic">Connected to MySQL simulation. Ready for commands...</div>
+          <div className="text-slate-600 italic">Waiting for queries...</div>
         )}
         
         {history.map(item => (
-          <div key={item.id} className="bg-black/30 p-3 rounded-md border border-white/5">
-            <div className="text-blue-300 font-bold mb-2 break-words whitespace-pre-wrap">
+          <div key={item.id} className="break-words">
+            <div className="text-slate-100 whitespace-pre-wrap">
               mysql&gt; {item.query}
             </div>
             
             {item.error ? (
-              <div className="text-red-400 bg-red-950/40 p-2 rounded border border-red-900/50 whitespace-pre-wrap">
+              <div className="text-red-400 whitespace-pre-wrap">
                 {formatError(item.error)}
               </div>
             ) : item.results && item.results.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="sql-table min-w-full text-left">
+              <div className="overflow-x-auto mt-2 mb-1">
+                <table className="min-w-max text-left border-collapse">
                   <thead>
                     <tr>
                       {item.results[0].columns.map((col, i) => (
-                        <th key={i} className="px-2 py-1 bg-white/10 text-orange-200 border border-white/20">{col}</th>
+                        <th key={i} className="px-3 py-1 bg-slate-800/50 text-slate-300 border border-slate-700">{col}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {item.results[0].values.map((row, rowIndex) => (
-                      <tr key={rowIndex} className="border-t border-white/10">
+                      <tr key={rowIndex}>
                         {row.map((val, colIndex) => (
-                          <td key={colIndex} className="px-2 py-1 text-gray-200 border border-white/10">
-                            {val !== null ? String(val) : <span className="italic text-gray-500">NULL</span>}
+                          <td key={colIndex} className="px-3 py-1 text-slate-400 border border-slate-700">
+                            {val !== null ? String(val) : <span className="italic text-slate-600">NULL</span>}
                           </td>
                         ))}
                       </tr>
@@ -94,32 +88,27 @@ export default function SqlTerminal({ history, onRun, isReady }: SqlTerminalProp
                 </table>
               </div>
             ) : (
-              <div className="text-gray-400 italic">
-                {item.query === '-- SYSTEM EVENT --' ? '' : 'Query OK, 0 rows affected.'}
+              <div className="text-slate-400 mt-1">
+                {item.query === '-- SYSTEM EVENT --' ? '' : `Query OK, ${item.affectedRows ?? 0} row(s) affected.`}
               </div>
             )}
           </div>
         ))}
       </div>
-      
-      {/* Input Area */}
-      <div className="mt-auto shrink-0 flex flex-col gap-2 pt-2 border-t border-white/10">
-        <textarea
-          className="sql-input min-h-[80px] max-h-[200px]"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter MySQL... (Ctrl+Enter to run)"
-        />
-        <button 
-          className="btn-primary self-end py-1.5 px-4"
-          onClick={handleRun}
-          disabled={!isReady || !query.trim()}
-        >
-          <Play size={16} />
-          {isReady ? 'Run' : 'Wait...'}
-        </button>
-      </div>
+
+      {onRun && (
+        <div className="bg-[#05080f] px-4 py-3 border-t border-slate-800 flex items-center shrink-0">
+          <span className="text-slate-500 font-mono text-xs mr-2">mysql&gt;</span>
+          <input 
+            type="text" 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="bg-transparent text-slate-300 font-mono text-xs focus:outline-none flex-grow placeholder-slate-700"
+            placeholder="Type SQL command and press Enter..."
+          />
+        </div>
+      )}
     </div>
   );
 }

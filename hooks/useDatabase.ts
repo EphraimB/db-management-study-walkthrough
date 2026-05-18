@@ -60,14 +60,15 @@ export function useDatabase() {
     
     try {
       // Simulate MySQL by allowing AUTO_INCREMENT keyword
-      const simulatedQuery = query.replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT');
+      let simulatedQuery = query.replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT');
+      simulatedQuery = simulatedQuery.replace(/START TRANSACTION/gi, 'BEGIN TRANSACTION');
       const res = db.exec(simulatedQuery);
       
       // Simple heuristic to track transaction state
       const upperQuery = query.toUpperCase();
       let currentTransState = inTransaction;
       
-      if (upperQuery.includes('BEGIN')) currentTransState = true;
+      if (upperQuery.includes('BEGIN') || upperQuery.includes('START TRANSACTION')) currentTransState = true;
       if (upperQuery.includes('COMMIT') || upperQuery.includes('ROLLBACK')) currentTransState = false;
       
       setInTransaction(currentTransState);
@@ -96,5 +97,15 @@ export function useDatabase() {
     return "SERVER CRASH! In-memory database destroyed. System rebooted and restored from last committed disk state.";
   };
 
-  return { db, isReady, error, executeQuery, simulateCrash, initDb, inTransaction };
+  const executeSilentQuery = (query: string): { results: QueryExecResult[], error: string | null } => {
+    if (!db) return { results: [], error: 'Database not initialized' };
+    try {
+      const res = db.exec(query);
+      return { results: res, error: null };
+    } catch (err: any) {
+      return { results: [], error: err.message };
+    }
+  };
+
+  return { db, isReady, error, executeQuery, executeSilentQuery, simulateCrash, initDb, inTransaction, savedDiskState, SQLStatic: SQLRef.current };
 }
